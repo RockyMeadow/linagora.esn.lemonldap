@@ -9,20 +9,19 @@ const AWESOME_MODULE_NAME = 'linagora.esn.' + MODULE_NAME;
 const awesomeModule = new AwesomeModule(AWESOME_MODULE_NAME, {
   dependencies: [
     new Dependency(Dependency.TYPE_NAME, 'linagora.esn.core.esn-config', 'esn-config'),
+    new Dependency(Dependency.TYPE_NAME, 'linagora.esn.core.domain', 'domain'),
     new Dependency(Dependency.TYPE_NAME, 'linagora.esn.core.passport', 'passport'),
-    new Dependency(Dependency.TYPE_NAME, 'linagora.esn.core.logger', 'logger')
+    new Dependency(Dependency.TYPE_NAME, 'linagora.esn.core.logger', 'logger'),
+    new Dependency(Dependency.TYPE_NAME, 'linagora.esn.core.user', 'user')
   ],
 
   states: {
     lib: function(dependencies, callback) {
-      const libModule = require('./backend/lib')(dependencies);
+      const lib = require('./backend/lib')(dependencies);
 
-      const lib = {
-        api: {},
-        lib: libModule
-      };
-
-      return callback(null, lib);
+      return callback(null, {
+        lib
+      });
     },
 
     deploy: function(dependencies, callback) {
@@ -30,6 +29,7 @@ const awesomeModule = new AwesomeModule(AWESOME_MODULE_NAME, {
     },
 
     start: function(dependencies, callback) {
+      this.lib.init();
       callback();
     }
   }
