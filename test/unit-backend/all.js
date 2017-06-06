@@ -25,6 +25,7 @@ beforeEach(function() {
   };
 
   this.moduleHelpers = {
+    requireBackend: module => require(path.resolve(__dirname + `/../../backend/${module}`)),
     modulesPath: path.resolve(__dirname + '/../../'),
     addDep: addDep,
     dependencies: dependencies
