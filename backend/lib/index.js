@@ -1,7 +1,15 @@
 'use strict';
 
-module.exports = function() {
-  const api = {};
+module.exports = (dependencies) => {
+  const config = require('./config')(dependencies);
+  const auth = require('./auth')(dependencies);
 
-  return api;
+  function init() {
+    config.init();
+    auth.init();
+  }
+
+  return {
+    init
+  };
 };
