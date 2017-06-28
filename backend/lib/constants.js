@@ -9,6 +9,7 @@ module.exports = {
     mapping: {
       'll-auth-user': 'auth-user',
       'll-auth-domain': 'auth-domain'
-    }
+    },
+    logoutUrl: '/logout_sso'
   }
 };

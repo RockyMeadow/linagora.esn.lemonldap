@@ -38,8 +38,19 @@ local configuration:
 ```
 
 Once enabled, this module will be loaded with OpenPaaS and ready to work.
-The next step is to configure OpenPaaS to let it know how to provision user from
-trusted-headers sent by LemonLDAP.
+The next step is to configure LemonLDAP virtualhost to protect OpenPaaS.
+
+In LemonLDAP _Manager_ page, go to `Virtual Hosts » <your virtualhost> » Access Rule`,
+click on __New rule__, then fill:
+
+```
+Commments: Protect home page
+Regular expressions: ^/$
+Rules: accept
+```
+
+In the same page, change the `Default rule` to `unprotect` to allow other resources
+of OpenPaaS to be accessible normaly from outside.
 
 ## User provision
 
@@ -70,6 +81,59 @@ configuration:
       "main_phone": "auth-phone",
       ...
     }
+  }, {
+    ...
   }]
 }]
 ```
+
+## Logout
+
+When the user logs out from OpenPaaS, he should be logged out from LemonLDAP and
+vice versa, when the user logs out from LemonLDAP, he should be logged out from
+OpenPaaS.
+
+### Logout from OpenPaaS then LemonLDAP
+
+To achieve this behaviour, OpenPaaS redirects the user to a logout endpoint of LemonLDAP
+after his logout from OpenPaaS, hence the user is fully logged out from both services.
+
+You can configure the logout endpoint in platform-wide configuration, it looks like:
+
+```json
+"domain_id" : null,
+"modules": [{
+  "name": "core",
+  "configurations": [...]
+}, {
+  "name": "linagora.esn.lemonldap",
+  "configurations": [{
+    "name": "logoutUrl",
+    "value": "http://auth.yoursite.com/?logout=1"
+  }, {
+    ...
+  }]
+}]
+```
+
+That logout endpoint is something like `http://auth.yoursite.com/?logout=1` depending
+on your LemonLDAP setup.
+
+## Logout from LemonLDAP then OpenPaaS
+
+Once the user logs our from LemonLDAP, it then forwards the logout to other applications
+to close their sessions. LemonLDAP has a logout forward mechanism, that will add
+a step in logout process, to send logout requests (indeed, GET requests
+on application logout URL) inside hidden iframes.
+
+In LemonLDAP _Manager_ page, go to `General parameters » Advanced parameters » Logout forward` and
+click on __Add a key__, then fill:
+
+```
+Key: application name, e.g. OpenPaaS
+Value: OpenPaaS logout URL, e.g. http://openpaas.yoursite.com/logout
+```
+
+Note that the request on logout URL will be sent after user is disconnected,
+so you should `unprotect` this URL if it is protected by a LemonLDAP Handler.
+Forturnately, this is done above by setting the `Default rule` to `unprotect`.
