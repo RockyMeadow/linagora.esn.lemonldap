@@ -5,7 +5,8 @@ module.exports = (dependencies) => {
       padmin: 'rw'
     },
     configurations: {
-      auth: {}
+      mapping: {},
+      logoutUrl: {}
     }
   };
 
