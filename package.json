@@ -15,6 +15,7 @@
   "dependencies": {
     "awesome-module": "1.0.0",
     "express": "4.14.0",
+    "glob-all": "3.1.0",
     "passport-trusted-header": "1.1.0",
     "q": "1.4.1"
   },
