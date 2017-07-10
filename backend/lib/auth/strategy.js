@@ -20,6 +20,10 @@ module.exports = (dependencies) => {
           return done(null, false);
         }
 
+        if (!authData.domainId) {
+          return done(null, false);
+        }
+
         return provision.provisionUser(authData).then(user => done(null, user));
       })
       .catch(done);
