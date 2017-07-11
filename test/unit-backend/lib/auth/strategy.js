@@ -43,12 +43,31 @@ describe('The lib/auth/strategy module', function() {
 
     });
 
+    it('should call done with false if the domain is not found', function(done) {
+      const req = {};
+      const headers = {};
+
+      provisionMock.getAuthDataFromRequest = () => q({
+        username: 'a user',
+        domainId: null
+      });
+
+      getModule();
+      verify(req, headers, (error, user) => {
+        expect(error).to.not.exist;
+        expect(user).to.be.false;
+        done();
+      });
+
+    });
+
     it('should provision user if found', function(done) {
       const req = {};
       const headers = {};
       const provisionedUser = { _id: 'provisioned user' };
 
       provisionMock.getAuthDataFromRequest = () => q({
+        domainId: '123',
         username: 'a user'
       });
       provisionMock.provisionUser = () => q(provisionedUser);
