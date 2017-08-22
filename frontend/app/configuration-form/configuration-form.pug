@@ -1,6 +1,6 @@
 ng-form.admin-modules-lemonldap-form.p-t-25(name='form')
   .col-xs-12.col-md-6
-    esn-form-group(label="#{__('Logout URL')}")
+    esn-form-group(label=__('Logout URL'))
       input.form-control(type="url", ng-model="$ctrl.configurations.logoutUrl.value", name="logoutUrl", required)
   .group-name #{__('Mapping')}
   admin-form-multi-input(ng-model="$ctrl.configurations.mapping.value", available-types="$ctrl.LEMONLDAP_MAPPING_TYPES", required-types="$ctrl.LEMONLDAP_REQUIRED_MAPPING_TYPES")
