@@ -1,5 +1,6 @@
 const expect = require('chai').expect;
 const q = require('q');
+const _ = require('lodash');
 
 describe('The lib/auth/provision module', function() {
   let getModule, constants;
@@ -17,7 +18,8 @@ describe('The lib/auth/provision module', function() {
         [constants.SPECIAL_AUTH_FIELDS.username]: 'auth-username',
         [constants.SPECIAL_AUTH_FIELDS.domain]: 'auth-domain',
         firstname: 'auth-firstname',
-        lastname: 'auth-lastname'
+        lastname: 'auth-lastname',
+        email: 'auth-username'
       };
       headers = {
         'auth-username': 'alice',
@@ -39,7 +41,7 @@ describe('The lib/auth/provision module', function() {
 
             return {
               get() {
-                return q(mapping);
+                return q(_.cloneDeep(mapping));
               }
             };
           }
@@ -60,8 +62,15 @@ describe('The lib/auth/provision module', function() {
         .done((authData) => {
           expect(authData).to.deep.equal({
             domainId: 'domainId',
-            mapping,
+            mapping: {
+              // no more special mappings here
+              firstname: 'auth-firstname',
+              lastname: 'auth-lastname',
+              email: 'auth-username'
+            },
             user: {
+              'auth-username': 'alice',
+              'auth-domain': 'alice.org',
               'auth-firstname': 'Alice',
               'auth-lastname': 'Rose'
             },

@@ -7,6 +7,7 @@ module.exports = (dependencies) => {
   const coreUser = dependencies('user');
   const coreDomain = dependencies('domain');
   const esnConfig = dependencies('esn-config');
+  const logger = dependencies('logger');
 
   return {
     getAuthDataFromRequest,
@@ -18,11 +19,14 @@ module.exports = (dependencies) => {
       .then((mapping) => {
         const trustedHeadders = getTrustedHeaders(req, mapping);
 
+        logger.debug('Got LemonLDAP trusted headers:', JSON.stringify(trustedHeadders));
+
         const username = trustedHeadders[mapping[SPECIAL_AUTH_FIELDS.username]];
         const domainName = trustedHeadders[mapping[SPECIAL_AUTH_FIELDS.domain]];
 
-        delete trustedHeadders[mapping[SPECIAL_AUTH_FIELDS.username]];
-        delete trustedHeadders[mapping[SPECIAL_AUTH_FIELDS.domain]];
+        // remove special mappings to prevent them from being added to translated user
+        delete mapping[SPECIAL_AUTH_FIELDS.username];
+        delete mapping[SPECIAL_AUTH_FIELDS.domain];
 
         return getDomainIdFromName(domainName)
           .then(domainId => ({
@@ -39,6 +43,10 @@ module.exports = (dependencies) => {
       .then((user) => {
         const method = user ? 'update' : 'provisionUser';
         const provisionUser = coreUser.translate(user, payload);
+
+        if (method === 'provisionUser') {
+          logger.debug('Provisioning new user:', JSON.stringify(provisionUser));
+        }
 
         return q.ninvoke(coreUser, method, provisionUser);
       });
