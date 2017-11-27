@@ -1,6 +1,7 @@
 const Strategy = require('passport-trusted-header').Strategy;
 
 module.exports = (dependencies) => {
+  const logger = dependencies('logger');
   const provision = require('./provision')(dependencies);
   const options = {
     headers: [],
@@ -16,6 +17,8 @@ module.exports = (dependencies) => {
     provision
       .getAuthDataFromRequest(req)
       .then((authData) => {
+        logger.debug('Parsed auth payload from trusted headers:', JSON.stringify(authData));
+
         if (!authData.username) { // user not found
           return done(null, false);
         }
@@ -26,6 +29,10 @@ module.exports = (dependencies) => {
 
         return provision.provisionUser(authData).then(user => done(null, user));
       })
-      .catch(done);
+      .catch((err) => {
+        logger.error('Error while authenticating user from LemonLDAP trusted headers', err);
+        // to not send back error object to frontend
+        done(null, false);
+      });
   }
 };

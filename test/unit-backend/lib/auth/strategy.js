@@ -26,6 +26,20 @@ describe('The lib/auth/strategy module', function() {
       });
     });
 
+    it('should call done with false if it fails to get auth data from request', function(done) {
+      const req = {};
+      const headers = {};
+
+      provisionMock.getAuthDataFromRequest = () => q.reject(new Error('an_error'));
+
+      getModule();
+      verify(req, headers, (error, user) => {
+        expect(error).to.not.exist;
+        expect(user).to.be.false;
+        done();
+      });
+    });
+
     it('should call done with false if the user not found', function(done) {
       const req = {};
       const headers = {};
@@ -77,6 +91,25 @@ describe('The lib/auth/strategy module', function() {
       verify(req, headers, (err, user) => {
         expect(err).to.not.exist;
         expect(user).to.deep.equal(provisionedUser);
+        done();
+      });
+    });
+
+    it('should call done with false if it fails to provision user', function(done) {
+      const req = {};
+      const headers = {};
+
+      provisionMock.getAuthDataFromRequest = () => q({
+        domainId: '123',
+        username: 'a user'
+      });
+      provisionMock.provisionUser = () => q.reject(new Error('an_error'));
+
+      getModule();
+
+      verify(req, headers, (err, user) => {
+        expect(err).to.not.exist;
+        expect(user).to.be.false;
         done();
       });
     });
