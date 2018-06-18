@@ -31,6 +31,11 @@ module.exports = (dependencies) => {
       })
       .catch((err) => {
         logger.error('Error while authenticating user from LemonLDAP trusted headers', err);
+        try {
+          logger.debug('Detailled error', JSON.stringify(err));
+        } catch (e) {
+          logger.error('unable to convert error to JSON');
+        }
         // to not send back error object to frontend
         done(null, false);
       });
