@@ -1,3 +1,4 @@
+const uuid = require('uuid/v4');
 const { STRATEGY_NAME } = require('../constants');
 
 module.exports = (dependencies) => {
@@ -23,6 +24,8 @@ module.exports = (dependencies) => {
 
   function loginHandler(req, res, next) {
     if (req.isAuthenticated()) {
+      updateSessionCookie(req);
+
       return next();
     }
 
@@ -34,5 +37,14 @@ module.exports = (dependencies) => {
     req.logout();
 
     return postLogout(req, res);
+  }
+
+  function updateSessionCookie(req) {
+    // This will force express-session to send back the cookie to the client
+    // req.session.cookie update is ignored when it checks for changes to send to the client
+    req.session && (req.session.lemonldap = uuid());
+
+    // This will force cookie to be updated in the backend store
+    req.session.cookie && (req.session.cookie.maxAge = 6000000);
   }
 };
