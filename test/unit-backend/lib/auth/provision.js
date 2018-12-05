@@ -141,4 +141,37 @@ describe('The lib/auth/provision module', function() {
       getModule().provisionUser(payload);
     });
   });
+
+  describe('The getTrustedHeaders fn', function() {
+    let mapping, headers, req, trustedHeadders;
+
+    beforeEach(function() {
+      mapping = {
+        [constants.SPECIAL_AUTH_FIELDS.username]: 'auth-user',
+        [constants.SPECIAL_AUTH_FIELDS.domain]: 'auth-domain',
+        firstname: 'AUTH-FIRST-NAME',
+        lastname: 'AUTH-LAST-NAME'
+      };
+      headers = {
+        'auth-user': 'peter.wilson@open-paas.org',
+        'auth-domain': 'open-paas.org.local',
+        'AUTH-FIRST-NAME': 'JÃ©rÃ´me',
+        'AUTH-LAST-NAME': 'LoÃ¯c'
+      };
+      req = {
+        get: key => headers[key]
+      };
+      trustedHeadders = {};
+    });
+
+    it('should return decoded name', function() {
+      trustedHeadders = getModule().getTrustedHeaders(req, mapping);
+      expect(trustedHeadders).to.deep.equal({
+        'auth-domain': 'open-paas.org.local',
+        'AUTH-FIRST-NAME': 'Jérôme',
+        'AUTH-LAST-NAME': 'Loïc',
+        'auth-user': 'peter.wilson@open-paas.org'
+      });
+    });
+  });
 });
