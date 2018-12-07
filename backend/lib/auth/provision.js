@@ -11,7 +11,8 @@ module.exports = (dependencies) => {
 
   return {
     getAuthDataFromRequest,
-    provisionUser
+    provisionUser,
+    getTrustedHeaders
   };
 
   function getAuthDataFromRequest(req) {
@@ -56,7 +57,7 @@ module.exports = (dependencies) => {
     const trustedHeadders = {};
 
     _.values(mapping).forEach((headerName) => {
-      trustedHeadders[headerName] = req.get(headerName);
+      trustedHeadders[headerName] = Buffer(req.get(headerName), 'ascii').toString();
     });
 
     return trustedHeadders;
