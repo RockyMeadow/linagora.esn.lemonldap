@@ -1,7 +1,9 @@
 const Strategy = require('passport-trusted-header').Strategy;
+const Q = require('q');
 
 module.exports = (dependencies) => {
   const logger = dependencies('logger');
+  const { findLDAPForUser } = dependencies('ldap');
   const provision = require('./provision')(dependencies);
   const options = {
     headers: [],
@@ -23,11 +25,25 @@ module.exports = (dependencies) => {
           return done(null, false);
         }
 
-        if (!authData.domainId) {
-          return done(null, false);
-        }
+        return Q.nfcall(findLDAPForUser, authData.username)
+          .then((ldaps) => {
+            if (!ldaps.length) {
+              logger.debug(`Username ${authData.username} is not found any LDAP connector`);
 
-        return provision.provisionUser(authData).then(user => done(null, user));
+              return done(`Username ${authData.username} can not be found in any of the OpenPaaS configured authenticators.`);
+            }
+
+            if (ldaps.length > 1) {
+              logger.debug(`Username ${authData.username} is found in more than 1 LDAP connector`);
+
+              return done(`Username ${authData.username} is invalid. Please contact OpenPaaS administrator for more detail.`);
+            }
+
+            authData.domainId = ldaps[0].domainId;
+
+            return provision.provisionUser(authData)
+              .then(user => done(null, user));
+          });
       })
       .catch((err) => {
         logger.error('Error while authenticating user from LemonLDAP trusted headers', err);

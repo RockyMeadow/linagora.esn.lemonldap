@@ -2,13 +2,11 @@ module.exports = {
   MODULE_NAME: 'linagora.esn.lemonldap',
   STRATEGY_NAME: 'lemon-ldap',
   SPECIAL_AUTH_FIELDS: {
-    username: 'll-auth-user',
-    domain: 'll-auth-domain'
+    username: 'll-auth-user'
   },
   CONFIG_DEFAULT: {
     mapping: {
-      'll-auth-user': 'auth-user',
-      'll-auth-domain': 'auth-domain'
+      'll-auth-user': 'auth-user'
     },
     logoutUrl: '/logout_sso'
   }

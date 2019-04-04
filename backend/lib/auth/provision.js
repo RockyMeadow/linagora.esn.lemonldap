@@ -5,7 +5,6 @@ const { SPECIAL_AUTH_FIELDS, CONFIG_DEFAULT, MODULE_NAME } = require('../constan
 
 module.exports = (dependencies) => {
   const coreUser = dependencies('user');
-  const coreDomain = dependencies('domain');
   const esnConfig = dependencies('esn-config');
   const logger = dependencies('logger');
 
@@ -23,19 +22,15 @@ module.exports = (dependencies) => {
         logger.debug('Got LemonLDAP trusted headers:', JSON.stringify(trustedHeadders));
 
         const username = trustedHeadders[mapping[SPECIAL_AUTH_FIELDS.username]];
-        const domainName = trustedHeadders[mapping[SPECIAL_AUTH_FIELDS.domain]];
 
         // remove special mappings to prevent them from being added to translated user
-        delete mapping[SPECIAL_AUTH_FIELDS.username];
-        delete mapping[SPECIAL_AUTH_FIELDS.domain];
+        Object.values(SPECIAL_AUTH_FIELDS).forEach(value => delete mapping[value]);
 
-        return getDomainIdFromName(domainName)
-          .then(domainId => ({
-            user: trustedHeadders,
-            username,
-            domainId,
-            mapping
-          }));
+        return {
+          user: trustedHeadders,
+          username,
+          mapping
+        };
       });
   }
 
@@ -61,14 +56,6 @@ module.exports = (dependencies) => {
     });
 
     return trustedHeadders;
-  }
-
-  function getDomainIdFromName(domainName) {
-    if (domainName) {
-      return coreDomain.getByName(domainName).then(domain => (domain && domain.id));
-    }
-
-    return q();
   }
 
   function getHeaderMapping() {

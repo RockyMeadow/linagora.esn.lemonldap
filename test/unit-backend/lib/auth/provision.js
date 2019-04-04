@@ -16,14 +16,12 @@ describe('The lib/auth/provision module', function() {
     beforeEach(function() {
       mapping = {
         [constants.SPECIAL_AUTH_FIELDS.username]: 'auth-username',
-        [constants.SPECIAL_AUTH_FIELDS.domain]: 'auth-domain',
         firstname: 'auth-firstname',
         lastname: 'auth-lastname',
         email: 'auth-username'
       };
       headers = {
         'auth-username': 'alice',
-        'auth-domain': 'alice.org',
         'auth-firstname': 'Alice',
         'auth-lastname': 'Rose',
         otherfield: 'other field'
@@ -47,13 +45,6 @@ describe('The lib/auth/provision module', function() {
           }
         };
       });
-      this.moduleHelpers.addDep('domain', {
-        getByName(name) {
-          expect(name).to.equal(headers['auth-domain']);
-
-          return q({ id: 'domainId' });
-        }
-      });
     });
 
     it('should convert the request to auth data', function(done) {
@@ -61,7 +52,6 @@ describe('The lib/auth/provision module', function() {
         .getAuthDataFromRequest(req)
         .done((authData) => {
           expect(authData).to.deep.equal({
-            domainId: 'domainId',
             mapping: {
               // no more special mappings here
               firstname: 'auth-firstname',
@@ -70,7 +60,6 @@ describe('The lib/auth/provision module', function() {
             },
             user: {
               'auth-username': 'alice',
-              'auth-domain': 'alice.org',
               'auth-firstname': 'Alice',
               'auth-lastname': 'Rose'
             },
@@ -148,13 +137,11 @@ describe('The lib/auth/provision module', function() {
     beforeEach(function() {
       mapping = {
         [constants.SPECIAL_AUTH_FIELDS.username]: 'auth-user',
-        [constants.SPECIAL_AUTH_FIELDS.domain]: 'auth-domain',
         firstname: 'AUTH-FIRST-NAME',
         lastname: 'AUTH-LAST-NAME'
       };
       headers = {
         'auth-user': 'peter.wilson@open-paas.org',
-        'auth-domain': 'open-paas.org.local',
         'AUTH-FIRST-NAME': 'JÃ©rÃ´me',
         'AUTH-LAST-NAME': 'LoÃ¯c'
       };
@@ -167,7 +154,6 @@ describe('The lib/auth/provision module', function() {
     it('should return decoded name', function() {
       trustedHeadders = getModule().getTrustedHeaders(req, mapping);
       expect(trustedHeadders).to.deep.equal({
-        'auth-domain': 'open-paas.org.local',
         'AUTH-FIRST-NAME': 'Jérôme',
         'AUTH-LAST-NAME': 'Loïc',
         'auth-user': 'peter.wilson@open-paas.org'
