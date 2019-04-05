@@ -17,17 +17,17 @@ module.exports = (dependencies) => {
   function getAuthDataFromRequest(req) {
     return getHeaderMapping()
       .then((mapping) => {
-        const trustedHeadders = getTrustedHeaders(req, mapping);
+        const trustedHeaders = getTrustedHeaders(req, mapping);
 
-        logger.debug('Got LemonLDAP trusted headers:', JSON.stringify(trustedHeadders));
+        logger.debug('Got LemonLDAP trusted headers:', JSON.stringify(trustedHeaders));
 
-        const username = trustedHeadders[mapping[SPECIAL_AUTH_FIELDS.username]];
+        const username = trustedHeaders[mapping[SPECIAL_AUTH_FIELDS.username]];
 
         // remove special mappings to prevent them from being added to translated user
         Object.values(SPECIAL_AUTH_FIELDS).forEach(value => delete mapping[value]);
 
         return {
-          user: trustedHeadders,
+          user: trustedHeaders,
           username,
           mapping
         };
@@ -49,13 +49,13 @@ module.exports = (dependencies) => {
   }
 
   function getTrustedHeaders(req, mapping) {
-    const trustedHeadders = {};
+    const trustedHeaders = {};
 
     _.values(mapping).forEach((headerName) => {
-      trustedHeadders[headerName] = Buffer(req.get(headerName), 'ascii').toString();
+      trustedHeaders[headerName] = Buffer(req.get(headerName), 'ascii').toString();
     });
 
-    return trustedHeadders;
+    return trustedHeaders;
   }
 
   function getHeaderMapping() {
