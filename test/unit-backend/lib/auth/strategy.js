@@ -1,6 +1,6 @@
 const mockery = require('mockery');
 const expect = require('chai').expect;
-const q = require('q');
+const sinon = require('sinon');
 
 describe('The lib/auth/strategy module', function() {
   let getModule;
@@ -14,10 +14,11 @@ describe('The lib/auth/strategy module', function() {
   });
 
   describe('The verify fn', function() {
-    let verify;
+    let verify, findLDAPForUserMock;
 
     beforeEach(function() {
       verify = null;
+      findLDAPForUserMock = () => {};
 
       mockery.registerMock('passport-trusted-header', {
         Strategy: function(options, verifyFn) {
@@ -30,7 +31,11 @@ describe('The lib/auth/strategy module', function() {
       const req = {};
       const headers = {};
 
-      provisionMock.getAuthDataFromRequest = () => q.reject(new Error('an_error'));
+      provisionMock.getAuthDataFromRequest = () => Promise.reject(new Error('an_error'));
+
+      this.moduleHelpers.addDep('ldap', {
+        findLDAPForUser: () => {}
+      });
 
       getModule();
       verify(req, headers, (error, user) => {
@@ -44,8 +49,12 @@ describe('The lib/auth/strategy module', function() {
       const req = {};
       const headers = {};
 
-      provisionMock.getAuthDataFromRequest = () => q({
+      provisionMock.getAuthDataFromRequest = () => Promise.resolve({
         username: null
+      });
+
+      this.moduleHelpers.addDep('ldap', {
+        findLDAPForUser: () => {}
       });
 
       getModule();
@@ -57,40 +66,124 @@ describe('The lib/auth/strategy module', function() {
 
     });
 
-    it('should call done with false if the domain is not found', function(done) {
+    it('should call done with false if failed to find ldap for user', function(done) {
       const req = {};
       const headers = {};
+      const usernameMock = 'aff2018';
 
-      provisionMock.getAuthDataFromRequest = () => q({
-        username: 'a user',
-        domainId: null
+      provisionMock.getAuthDataFromRequest = () => Promise.resolve({
+        username: usernameMock
+      });
+
+      findLDAPForUserMock = sinon.spy((username, callback) => {
+        expect(username).to.equal(usernameMock);
+
+        callback(new Error('something wrong'));
+      });
+
+      this.moduleHelpers.addDep('ldap', {
+        findLDAPForUser: findLDAPForUserMock
       });
 
       getModule();
       verify(req, headers, (error, user) => {
         expect(error).to.not.exist;
         expect(user).to.be.false;
+        expect(findLDAPForUserMock).to.have.been.calledOnce;
         done();
       });
+    });
 
+    it('should call done with error if username is not found in any ldap connector', function(done) {
+      const req = {};
+      const headers = {};
+      const usernameMock = 'aff2018';
+
+      provisionMock.getAuthDataFromRequest = () => Promise.resolve({
+        username: usernameMock
+      });
+
+      findLDAPForUserMock = sinon.spy((username, callback) => {
+        expect(username).to.equal(usernameMock);
+
+        callback(null, []);
+      });
+
+      this.moduleHelpers.addDep('ldap', {
+        findLDAPForUser: findLDAPForUserMock
+      });
+
+      getModule();
+
+      verify(req, headers, (err) => {
+        expect(err).to.equal(`Username ${usernameMock} can not be found in any of the OpenPaaS configured authenticators.`);
+        expect(findLDAPForUserMock).to.have.been.calledOnce;
+        done();
+      });
+    });
+
+    it('should call done with error if username is found in more than 1 ldap connector', function(done) {
+      const req = {};
+      const headers = {};
+      const usernameMock = 'aff2018';
+
+      provisionMock.getAuthDataFromRequest = () => Promise.resolve({
+        username: usernameMock
+      });
+
+      findLDAPForUserMock = sinon.spy((username, callback) => {
+        expect(username).to.equal(usernameMock);
+
+        callback(null, [{}, {}]);
+      });
+
+      this.moduleHelpers.addDep('ldap', {
+        findLDAPForUser: findLDAPForUserMock
+      });
+
+      getModule();
+
+      verify(req, headers, (err) => {
+        expect(err).to.equal(`Username ${usernameMock} is invalid. Please contact OpenPaaS administrator for more detail.`);
+        expect(findLDAPForUserMock).to.have.been.calledOnce;
+        done();
+      });
     });
 
     it('should provision user if found', function(done) {
       const req = {};
       const headers = {};
       const provisionedUser = { _id: 'provisioned user' };
+      const usernameMock = 'aff2018';
+      const ldap = {
+        domainId: 'domainId'
+      };
 
-      provisionMock.getAuthDataFromRequest = () => q({
-        domainId: '123',
-        username: 'a user'
+      provisionMock.getAuthDataFromRequest = () => Promise.resolve({
+        username: usernameMock
       });
-      provisionMock.provisionUser = () => q(provisionedUser);
+      provisionMock.provisionUser = sinon.stub().returns(Promise.resolve(provisionedUser));
+
+      findLDAPForUserMock = sinon.spy((username, callback) => {
+        expect(username).to.equal(usernameMock);
+
+        callback(null, [ldap]);
+      });
+
+      this.moduleHelpers.addDep('ldap', {
+        findLDAPForUser: findLDAPForUserMock
+      });
 
       getModule();
 
       verify(req, headers, (err, user) => {
         expect(err).to.not.exist;
         expect(user).to.deep.equal(provisionedUser);
+        expect(findLDAPForUserMock).to.have.been.calledOnce;
+        expect(provisionMock.provisionUser).to.have.calledWith({
+          username: usernameMock,
+          domainId: ldap.domainId
+        });
         done();
       });
     });
@@ -98,18 +191,36 @@ describe('The lib/auth/strategy module', function() {
     it('should call done with false if it fails to provision user', function(done) {
       const req = {};
       const headers = {};
+      const usernameMock = 'aff2018';
+      const ldap = {
+        domainId: 'domainId'
+      };
 
-      provisionMock.getAuthDataFromRequest = () => q({
-        domainId: '123',
-        username: 'a user'
+      provisionMock.getAuthDataFromRequest = () => Promise.resolve({
+        username: usernameMock
       });
-      provisionMock.provisionUser = () => q.reject(new Error('an_error'));
+      provisionMock.provisionUser = sinon.stub().returns(Promise.reject(new Error('an_error')));
+
+      findLDAPForUserMock = sinon.spy((username, callback) => {
+        expect(username).to.equal(usernameMock);
+
+        callback(null, [ldap]);
+      });
+
+      this.moduleHelpers.addDep('ldap', {
+        findLDAPForUser: findLDAPForUserMock
+      });
 
       getModule();
 
       verify(req, headers, (err, user) => {
         expect(err).to.not.exist;
         expect(user).to.be.false;
+        expect(findLDAPForUserMock).to.have.been.calledOnce;
+        expect(provisionMock.provisionUser).to.have.calledWith({
+          username: usernameMock,
+          domainId: ldap.domainId
+        });
         done();
       });
     });

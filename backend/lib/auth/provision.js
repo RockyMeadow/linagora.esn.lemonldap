@@ -5,7 +5,6 @@ const { SPECIAL_AUTH_FIELDS, CONFIG_DEFAULT, MODULE_NAME } = require('../constan
 
 module.exports = (dependencies) => {
   const coreUser = dependencies('user');
-  const coreDomain = dependencies('domain');
   const esnConfig = dependencies('esn-config');
   const logger = dependencies('logger');
 
@@ -18,24 +17,20 @@ module.exports = (dependencies) => {
   function getAuthDataFromRequest(req) {
     return getHeaderMapping()
       .then((mapping) => {
-        const trustedHeadders = getTrustedHeaders(req, mapping);
+        const trustedHeaders = getTrustedHeaders(req, mapping);
 
-        logger.debug('Got LemonLDAP trusted headers:', JSON.stringify(trustedHeadders));
+        logger.debug('Got LemonLDAP trusted headers:', JSON.stringify(trustedHeaders));
 
-        const username = trustedHeadders[mapping[SPECIAL_AUTH_FIELDS.username]];
-        const domainName = trustedHeadders[mapping[SPECIAL_AUTH_FIELDS.domain]];
+        const username = trustedHeaders[mapping[SPECIAL_AUTH_FIELDS.username]];
 
         // remove special mappings to prevent them from being added to translated user
-        delete mapping[SPECIAL_AUTH_FIELDS.username];
-        delete mapping[SPECIAL_AUTH_FIELDS.domain];
+        Object.values(SPECIAL_AUTH_FIELDS).forEach(value => delete mapping[value]);
 
-        return getDomainIdFromName(domainName)
-          .then(domainId => ({
-            user: trustedHeadders,
-            username,
-            domainId,
-            mapping
-          }));
+        return {
+          user: trustedHeaders,
+          username,
+          mapping
+        };
       });
   }
 
@@ -54,21 +49,15 @@ module.exports = (dependencies) => {
   }
 
   function getTrustedHeaders(req, mapping) {
-    const trustedHeadders = {};
+    const trustedHeaders = {};
 
     _.values(mapping).forEach((headerName) => {
-      trustedHeadders[headerName] = Buffer(req.get(headerName), 'ascii').toString();
+      if (req.get(headerName)) {
+        trustedHeaders[headerName] = Buffer(req.get(headerName), 'ascii').toString();
+      }
     });
 
-    return trustedHeadders;
-  }
-
-  function getDomainIdFromName(domainName) {
-    if (domainName) {
-      return coreDomain.getByName(domainName).then(domain => (domain && domain.id));
-    }
-
-    return q();
+    return trustedHeaders;
   }
 
   function getHeaderMapping() {
