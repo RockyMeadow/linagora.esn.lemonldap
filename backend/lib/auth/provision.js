@@ -52,7 +52,9 @@ module.exports = (dependencies) => {
     const trustedHeaders = {};
 
     _.values(mapping).forEach((headerName) => {
-      trustedHeaders[headerName] = Buffer(req.get(headerName), 'ascii').toString();
+      if (req.get(headerName)) {
+        trustedHeaders[headerName] = Buffer(req.get(headerName), 'ascii').toString();
+      }
     });
 
     return trustedHeaders;

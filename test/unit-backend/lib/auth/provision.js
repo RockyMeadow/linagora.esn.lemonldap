@@ -159,5 +159,18 @@ describe('The lib/auth/provision module', function() {
         'auth-user': 'peter.wilson@open-paas.org'
       });
     });
+
+    it('should return an object which does not contain key when the key is not in the header', function() {
+      headers = {
+        'auth-user': 'peter.wilson@open-paas.org',
+        'AUTH-LAST-NAME': 'dwho'
+      };
+
+      trustedHeadders = getModule().getTrustedHeaders(req, mapping);
+      expect(trustedHeadders).to.deep.equal({
+        'AUTH-LAST-NAME': 'dwho',
+        'auth-user': 'peter.wilson@open-paas.org'
+      });
+    });
   });
 });
