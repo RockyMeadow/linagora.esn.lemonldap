@@ -13,6 +13,5 @@ angular.module('linagora.esn.lemonldap')
     'job_title'
   ])
   .constant('LEMONLDAP_REQUIRED_MAPPING_TYPES', [
-    'll-auth-user',
-    'll-auth-domain'
+    'll-auth-user'
   ]);
