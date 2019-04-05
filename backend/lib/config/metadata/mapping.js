@@ -40,17 +40,12 @@ module.exports = (dependencies) => {
         type: 'string',
         minLength: 1
       },
-      'll-auth-domain': {
-        type: 'string',
-        minLength: 1
-      },
       'll-auth-user': {
         type: 'string',
         minLength: 1
       }
     },
     required: [
-      'll-auth-domain',
       'll-auth-user'
     ]
   };

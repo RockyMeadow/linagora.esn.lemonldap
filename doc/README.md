@@ -76,7 +76,6 @@ configuration:
     "name": "mapping",
     "value": {
       "ll-auth-user": "auth-user", // required, mapping for unique username (usually email)
-      "ll-auth-domain": "auth-domain",  // required, mapping for user domain
       "lastname": "auth-name",
       "main_phone": "auth-phone",
       ...
