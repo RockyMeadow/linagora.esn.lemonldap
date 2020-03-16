@@ -1,5 +1,5 @@
+const { promisify } = require('util');
 const _ = require('lodash');
-const q = require('q');
 
 const { SPECIAL_AUTH_FIELDS, CONFIG_DEFAULT, MODULE_NAME } = require('../constants');
 
@@ -8,10 +8,16 @@ module.exports = (dependencies) => {
   const esnConfig = dependencies('esn-config');
   const logger = dependencies('logger');
 
+  const findUserByEmail = promisify(coreUser.findByEmail);
+  const update = promisify(coreUser.update);
+  const provision = promisify(coreUser.provisionUser);
+  const metadata = coreUser.metadata;
+
   return {
     getAuthDataFromRequest,
     provisionUser,
-    getTrustedHeaders
+    getTrustedHeaders,
+    saveUserProvisionedFields
   };
 
   function getAuthDataFromRequest(req) {
@@ -35,17 +41,23 @@ module.exports = (dependencies) => {
   }
 
   function provisionUser(payload) {
-    return q.nfcall(coreUser.findByEmail, payload.username)
+    return findUserByEmail(payload.username)
       .then((user) => {
-        const method = user ? 'update' : 'provisionUser';
+        const method = user ? update : provision;
         const provisionUser = coreUser.translate(user, payload);
 
         if (method === 'provisionUser') {
           logger.debug('Provisioning new user:', JSON.stringify(provisionUser));
         }
 
-        return q.ninvoke(coreUser, method, provisionUser);
+        return method(provisionUser)
+          .then(user => ({ ...payload, user }));
       });
+  }
+
+  function saveUserProvisionedFields({ user, mapping }) {
+    return metadata(user).set('profileProvisionedFields', Object.keys(mapping))
+      .then(() => user);
   }
 
   function getTrustedHeaders(req, mapping) {

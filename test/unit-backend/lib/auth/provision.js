@@ -1,12 +1,26 @@
-const expect = require('chai').expect;
+const { expect } = require('chai');
+const sinon = require('sinon');
 const q = require('q');
 const _ = require('lodash');
 
 describe('The lib/auth/provision module', function() {
   let getModule, constants;
+  let coreUserMock, setUserMetadataMock;
 
   beforeEach(function() {
+    setUserMetadataMock = () => Promise.resolve();
+    coreUserMock = {
+      findByEmail: (username, callback) => callback(null),
+      update: (user, callback) => callback(null),
+      provisionUser: (user, callback) => callback(null),
+      metadata: () => ({
+        set: setUserMetadataMock
+      }),
+      translate: () => {}
+    };
+
     constants = this.moduleHelpers.requireBackend('lib/constants');
+    this.moduleHelpers.addDep('user', coreUserMock);
     getModule = () => this.moduleHelpers.requireBackend('lib/auth/provision')(this.moduleHelpers.dependencies);
   });
 
@@ -72,13 +86,6 @@ describe('The lib/auth/provision module', function() {
   });
 
   describe('The provisionUser fn', function() {
-    let coreUserMock;
-
-    beforeEach(function() {
-      coreUserMock = {};
-      this.moduleHelpers.addDep('user', coreUserMock);
-    });
-
     it('should provision new user if not exist', function(done) {
       const payload = {
         username: 'alice',
@@ -171,6 +178,28 @@ describe('The lib/auth/provision module', function() {
         'AUTH-LAST-NAME': 'dwho',
         'auth-user': 'peter.wilson@open-paas.org'
       });
+    });
+  });
+
+  describe('The saveUserProvisionedFields fn', () => {
+    it('should set metdata of provision fields for a user then return the user object', function(done) {
+      const payload = {
+        user: { id: 'provisioned-user' },
+        mapping: {
+          firstname: 'header-firstname',
+          lastname: 'header-lastname'
+        }
+      };
+
+      setUserMetadataMock = sinon.stub().returns(Promise.resolve());
+
+      getModule().saveUserProvisionedFields(payload)
+        .then((result) => {
+          expect(result).to.equal(payload.user);
+          expect(setUserMetadataMock).to.have.been.calledWith('profileProvisionedFields', ['firstname', 'lastname']);
+          done();
+        })
+        .catch(done);
     });
   });
 });

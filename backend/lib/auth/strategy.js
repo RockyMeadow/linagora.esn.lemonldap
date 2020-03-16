@@ -1,10 +1,15 @@
 const Strategy = require('passport-trusted-header').Strategy;
-const Q = require('q');
+const { promisify } = require('util');
 
 module.exports = (dependencies) => {
   const logger = dependencies('logger');
-  const { findLDAPForUser } = dependencies('ldap');
-  const provision = require('./provision')(dependencies);
+  const findLDAPForUser = promisify(dependencies('ldap').findLDAPForUser);
+  const {
+    getAuthDataFromRequest,
+    provisionUser,
+    saveUserProvisionedFields
+  } = require('./provision')(dependencies);
+
   const options = {
     headers: [],
     passReqToCallback: true
@@ -16,8 +21,7 @@ module.exports = (dependencies) => {
     // instead of relying on headers returned from Strategy
     // we get headers directly from request
     // because the trusted fields are configurable by esnConfig
-    provision
-      .getAuthDataFromRequest(req)
+    getAuthDataFromRequest(req)
       .then((authData) => {
         logger.debug('Parsed auth payload from trusted headers:', JSON.stringify(authData));
 
@@ -25,7 +29,7 @@ module.exports = (dependencies) => {
           return done(null, false);
         }
 
-        return Q.nfcall(findLDAPForUser, authData.username)
+        return findLDAPForUser(authData.username)
           .then((ldaps) => {
             if (!ldaps.length) {
               logger.debug(`Username ${authData.username} is not found any LDAP connector`);
@@ -41,7 +45,8 @@ module.exports = (dependencies) => {
 
             authData.domainId = ldaps[0].domainId;
 
-            return provision.provisionUser(authData)
+            return provisionUser(authData)
+              .then(saveUserProvisionedFields)
               .then(user => done(null, user));
           });
       })

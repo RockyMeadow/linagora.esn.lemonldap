@@ -224,6 +224,43 @@ describe('The lib/auth/strategy module', function() {
         done();
       });
     });
+
+    describe('save provisioned fields to user metadata after provisioning/updating user', function() {
+      beforeEach(function() {
+        provisionMock.getAuthDataFromRequest = () => Promise.resolve({ username: 'username' });
+        provisionMock.saveUserProvisionedFields = () => Promise.resolve();
+        provisionMock.provisionUser = () => Promise.resolve({ _id: 'provisioned user' });
+
+        this.moduleHelpers.addDep('ldap', {
+          findLDAPForUser: (username, callback) => callback(null, [{ domainId: 'domain' }])
+        });
+      });
+
+      it('should not save provion fields if failes to provision user', function(done) {
+        provisionMock.provisionUser = () => Promise.reject(new Error('error'));
+        provisionMock.saveUserProvisionedFields = sinon.spy(() => Promise.reject(new Error('should not called')));
+        getModule();
+
+        verify({}, {}, () => {
+          expect(provisionMock.saveUserProvisionedFields).to.not.have.been.called;
+
+          done();
+        });
+      });
+
+      it('should save provion fields after provision user', function(done) {
+        provisionMock.saveUserProvisionedFields = sinon.stub().returns(Promise.resolve());
+        getModule();
+
+        verify({}, {}, (error) => {
+          if (error) return done(error);
+
+          expect(provisionMock.saveUserProvisionedFields).to.have.been.called;
+
+          done();
+        });
+      });
+    });
   });
 
 });
